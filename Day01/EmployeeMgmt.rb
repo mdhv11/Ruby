@@ -3,12 +3,13 @@ $employees = {
   2 => { name: "Tony", age: 32, email: "t@t.com", role: "SDE" }
 }
 
-def add_employee!()
+def add_employee
   puts "Enter employee ID:"
   id = gets.chomp.to_i
 
   if $employees.include?(id)
-    return puts "Employee with given id already exists."
+    puts "Employee with given id already exists."
+    return
   end
 
   puts "Enter employee name:"
@@ -23,7 +24,12 @@ def add_employee!()
 end
 
 def read_employee_details(id)
-  puts $employees[id]
+  emp = $employees[id]
+  if emp
+    puts "ID: #{id} | Name: #{emp[:name]} | Age: #{emp[:age]} | Email: #{emp[:email]} | Role: #{emp[:role]}"
+  else
+    puts "Employee not found."
+  end
 end
 
 def view_employees
@@ -87,9 +93,9 @@ loop do
 
   case choice
   when 1
-    add_employee!()
+    add_employee
   when 2
-    view_employees()
+    view_employees
   when 3
     puts "Enter the id of the employee: "
     id = gets.chomp.to_i
