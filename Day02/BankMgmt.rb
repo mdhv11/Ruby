@@ -11,8 +11,8 @@ $transactions = {
   2 => { account_id: 101, type: "withdrawal", amount: 500 }
 }
 $loans = {
-  1 => { customer_id: 1, principal: 50000, rate: 10, tenure: 36, EMI: 1613, status: "active" },
-  2 => { customer_id: 2, principal: 100000, rate: 10, tenure: 24, EMI: 4614, status: "approved" }
+  1 => { customer_id: 1, principal: 50000, rate: 10, tenure: 36, EMI: 1613, status: "approved" },
+  2 => { customer_id: 2, principal: 100000, rate: 10, tenure: 24, EMI: 4614, status: "approved" },
   3 => { customer_id: 1, principal: 200000, rate: 10, tenure: 60, EMI: 4248, status: "pending" }
 }
 
@@ -44,10 +44,36 @@ def create_account
   customer_id = ($customers.keys.max || 0) + 1
   acc_id = ($accounts.keys.max || 0) + 1
 
-  puts "Enter customer name:"
-  name = gets.chomp
-  puts "Enter customer age:"
-  age = gets.chomp.to_i
+  name = nil
+  3.times do |i|
+    puts "Enter customer name:"
+    input = gets.chomp
+
+    if input.match?(/^(?=.{2,30}$)[A-Za-z]+(?:\s[A-Za-z]+)*$/)
+      name = input
+      break
+    else
+      puts "Invalid name. #{2 - i} attempts left"
+    end
+  end
+
+  return puts("Failed to create account.") if name.nil?
+
+  age = nil
+  3.times do |i|
+    puts "Enter customer age (must be 18 or older):"
+    input = gets.chomp
+
+    if input.match?(/^\d+$/) && input.to_i >= 18 && input.to_i <= 120
+      age = input.to_i
+      break
+    else
+      puts "Invalid age. Must be a number between 18 and 120. #{2 - i} attempts left"
+    end
+  end
+
+  return puts("Failed to create account.") if age.nil?
+
   phone = nil
   3.times do |i|
     puts "Enter customer phone:"
@@ -57,7 +83,7 @@ def create_account
       phone = input
       break
     else
-      puts "Invalid phone number. #{2-i} attempts left"
+      puts "Invalid phone number. #{2 - i} attempts left"
     end
   end
 
@@ -65,20 +91,21 @@ def create_account
 
   puts "Enter your city:"
   city = gets.chomp
+
   acc_type = nil
   3.times do |i|
     puts "Select account type: 1. Savings 2. Current"
-    choice = gets.chomp.to_i
+    choice = gets.chomp
 
     case choice
-    when 1
+    when "1"
       acc_type = "Savings"
       break
-    when 2
+    when "2"
       acc_type = "Current"
       break
     else
-      puts "Invalid choice. #{2-i} attempts left"
+      puts "Invalid choice. #{2 - i} attempts left"
     end
   end
 
@@ -86,7 +113,7 @@ def create_account
 
   puts "Enter initial deposit amount:"
   balance = gets.chomp.to_f
-  return unless valid_amount?(balance)
+  return puts("Invalid amount.") unless valid_amount?(balance) # Assumes method exists
 
   $customers[customer_id] = {
     name: name,
