@@ -13,6 +13,7 @@ $transactions = {
 $loans = {
   1 => { customer_id: 1, principal: 50000, rate: 10, tenure: 36, EMI: 1613, status: "active" },
   2 => { customer_id: 2, principal: 100000, rate: 10, tenure: 24, EMI: 4614, status: "approved" }
+  3 => { customer_id: 1, principal: 200000, rate: 10, tenure: 60, EMI: 4248, status: "pending" }
 }
 
 def valid_account?(acc_id)
@@ -47,18 +48,61 @@ def create_account
   name = gets.chomp
   puts "Enter customer age:"
   age = gets.chomp.to_i
-  puts "Enter customer phone:"
-  phone = gets.chomp
+  phone = nil
+  3.times do |i|
+    puts "Enter customer phone:"
+    input = gets.chomp
+
+    if input.match?(/^\d{10}$/)
+      phone = input
+      break
+    else
+      puts "Invalid phone number. #{2-i} attempts left"
+    end
+  end
+
+  return puts("Failed to create account.") if phone.nil?
+
   puts "Enter your city:"
   city = gets.chomp
-  puts "Select the type of account Savings/Current"
-  acc_type = gets.chomp
+  acc_type = nil
+  3.times do |i|
+    puts "Select account type: 1. Savings 2. Current"
+    choice = gets.chomp.to_i
+
+    case choice
+    when 1
+      acc_type = "Savings"
+      break
+    when 2
+      acc_type = "Current"
+      break
+    else
+      puts "Invalid choice. #{2-i} attempts left"
+    end
+  end
+
+  return puts("Failed to create account.") if acc_type.nil?
+
   puts "Enter initial deposit amount:"
   balance = gets.chomp.to_f
   return unless valid_amount?(balance)
 
-  $customers[customer_id] = { name: name, age: age, phone: phone, city: city}
-  $accounts[acc_id] = {customer_id: customer_id, balance: balance, acc_type: acc_type}
+  $customers[customer_id] = {
+    name: name,
+    age: age,
+    phone: phone,
+    city: city
+  }
+
+  $accounts[acc_id] = {
+    customer_id: customer_id,
+    balance: balance,
+    acc_type: acc_type
+  }
+
+  puts "Account created successfully!"
+  puts "Account ID: #{acc_id}"
 end
 
 def withdraw(acc_id)
@@ -180,6 +224,23 @@ def get_loan
   puts "Loan request submitted."
 end
 
+def approve_loan(loan_id)
+  loan = $loans[loan_id]
+
+  if loan.nil?
+    puts "Loan not found."
+    return
+  end
+
+  if loan[:status] != "pending"
+    puts "Loan is not in pending status."
+    return
+  end
+
+  loan[:status] = "approved"
+  puts "Loan approved successfully!"
+end
+
 def show_loan_details(customer_id)
   $loans.each do |loan_id, loan|
     if loan[:customer_id] == customer_id
@@ -227,54 +288,84 @@ end
 
 loop do
   puts "Bank Management System"
-  puts "1. Create account"
-  puts "2. View Account details"
-  puts "3. Withdraw"
-  puts "4. Deposit"
-  puts "5. Transfer Money"
-  puts "6. Get a loan"
-  puts "7. View Loan details"
-  puts "8. View your transactions"
-  puts "9. Exit"
+  puts "1. Admin"
+  puts "2. Customer"
+  puts "3. Exit"
 
   print "Choose an option: "
   choice = gets.chomp.to_i
 
   case choice
   when 1
-    create_account
+    puts "Admin Panel"
+    puts "1. Create Account"
+    puts "2. Approve Loan"
+    puts "3. View Account Details"
+    puts "4. View Transactions"
+
+    print "Choose an option: "
+    admin_choice = gets.chomp.to_i
+
+    case admin_choice
+    when 1
+      create_account
+    when 2
+      puts "Enter loan ID to approve:"
+      loan_id = gets.chomp.to_i
+      approve_loan(loan_id)
+    when 3
+      puts "Enter account ID to view details:"
+      acc_id = gets.chomp.to_i
+      show_account_details(acc_id)
+    when 4
+      puts "Enter account ID to view transactions:"
+      acc_id = gets.chomp.to_i
+      show_transactions(acc_id)
+    else
+      puts "Invalid choice."
+    end
+
   when 2
-    puts "Enter your account id: "
-    acc_id = gets.chomp.to_i
-    show_account_details(acc_id)
+    puts "Customer Panel"
+    puts "1. Deposit"
+    puts "2. Withdraw"
+    puts "3. Transfer Amount"
+    puts "4. Get Loan"
+    puts "5. View Loan Details"
+
+    print "Choose an option: "
+    customer_choice = gets.chomp.to_i
+
+    case customer_choice
+    when 1
+      puts "Enter account ID to deposit:"
+      acc_id = gets.chomp.to_i
+      deposit(acc_id)
+    when 2
+      puts "Enter account ID to withdraw:"
+      acc_id = gets.chomp.to_i
+      withdraw(acc_id)
+    when 3
+      puts "Enter sender account ID:"
+      sender_id = gets.chomp.to_i
+      puts "Enter receiver account ID:"
+      receiver_id = gets.chomp.to_i
+      transfer_amount(sender_id, receiver_id)
+    when 4
+      get_loan
+    when 5
+      puts "Enter your customer ID to view loan details:"
+      customer_id = gets.chomp.to_i
+      show_loan_details(customer_id)
+    else
+      puts "Invalid choice."
+    end
+
   when 3
-    puts "Enter your account id: "
-    acc_id = gets.chomp.to_i
-    withdraw(acc_id)
-  when 4
-    puts "Enter your account Id: "
-    acc_id = gets.chomp.to_i
-    deposit(acc_id)
-  when 5
-    puts "Enter your account Id: "
-    sender_id = gets.chomp.to_i
-    puts "Enter the account Id of the other person: "
-    receiver_id = gets.chomp.to_i
-    transfer_amount(sender_id, receiver_id)
-  when 6
-    get_loan
-  when 7
-    puts "Enter your customer Id: "
-    customer_id = gets.chomp.to_i
-    show_loan_details(customer_id)
-  when 8
-    puts "Enter your account Id: "
-    acc_id = gets.chomp.to_i
-    show_transactions(acc_id)
-  when 9
-    puts "Thank you for banking with us!"
+    puts "Exiting..."
     break
+
   else
-    puts "Invalid option"
+    puts "Invalid choice."
   end
 end
