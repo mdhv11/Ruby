@@ -3,12 +3,12 @@ $customers = {
   2 => { name: "Jerry", age: 25, phone: "9123456780", city: "Mumbai" }
 }
 $accounts = {
-  101 => { customer_id: 1, balance: 5000, acc_type: "Savings" },
-  102 => { customer_id: 2, balance: 12000, acc_type: "Current" }
+  1 => { customer_id: 1, balance: 5000, acc_type: "Savings" },
+  2 => { customer_id: 2, balance: 12000, acc_type: "Current" }
 }
 $transactions = {
-  1 => { account_id: 101, type: "deposit", amount: 2000 },
-  2 => { account_id: 101, type: "withdrawal", amount: 500 }
+  1 => { account_id: 1, type: "deposit", amount: 2000, time: 2026-03-15 20:05:12 },
+  2 => { account_id: 2, type: "withdrawal", amount: 500, time: 2026-03-11 18:05:12 }
 }
 $loans = {
   1 => { customer_id: 1, principal: 50000, rate: 10, tenure: 36, EMI: 1613, status: "approved" },
@@ -16,104 +16,140 @@ $loans = {
   3 => { customer_id: 1, principal: 200000, rate: 10, tenure: 60, EMI: 4248, status: "pending" }
 }
 
-def valid_account?(acc_id)
-  if !$accounts.key?(acc_id)
-    puts "Account not found."
-    return false
-  end
-  true
+def prompt(message)
+  print "#{message} "
+  input = gets
+  raise EOFError, "Input stream closed." if input.nil?
+
+  value = input.chomp.strip
+  raise ArgumentError, "Input cannot be empty." if value.empty?
+
+  value
 end
 
-def valid_customer?(customer_id)
-  if !$customers.key?(customer_id)
-    puts "Customer not found."
-    return false
-  end
-  true
+def prompt_integer(message)
+  Integer(prompt(message))
+rescue ArgumentError
+  raise ArgumentError, "Please enter a valid integer."
 end
 
-def valid_amount?(amount)
-  if amount <= 0
-    puts "Amount must be greater than 0."
-    return false
+def prompt_float(message)
+  Float(prompt(message))
+rescue ArgumentError
+  raise ArgumentError, "Please enter a valid number."
+end
+
+def prompt_amount(message)
+  amount = prompt_float(message)
+  raise ArgumentError, "Amount must be greater than 0." unless amount > 0
+
+  amount
+end
+
+def prompt_with_attempts(attempts = 3)
+  remaining = attempts
+
+  loop do
+    return yield
+  rescue StandardError => e
+    remaining -= 1
+    puts "Error: #{e.message}"
+    raise if remaining <= 0
+    puts "Attempts left: #{remaining}"
   end
-  true
+end
+
+def fetch_account!(acc_id)
+  account = $accounts[acc_id]
+  raise RuntimeError, "Account not found." if account.nil?
+
+  account
+end
+
+def fetch_customer!(customer_id)
+  customer = $customers[customer_id]
+  raise RuntimeError, "Customer not found." if customer.nil?
+
+  customer
+end
+
+def fetch_loan!(loan_id)
+  loan = $loans[loan_id]
+  raise RuntimeError, "Loan not found." if loan.nil?
+
+  loan
+end
+
+def fetch_customer_account!(customer_id, acc_id)
+  customer = fetch_customer!(customer_id)
+  account = fetch_account!(acc_id)
+  raise RuntimeError, "This account does not belong to the given customer." unless account[:customer_id] == customer_id
+
+  [customer, account]
+end
+
+def next_id(collection)
+  (collection.keys.max || 0) + 1
+end
+
+def record_transaction(account_id, type, amount)
+  transaction_id = next_id($transactions)
+  $transactions[transaction_id] = { account_id: account_id, type: type, amount: amount }
+end
+
+def prompt_name
+  value = prompt("Enter customer name:")
+  raise ArgumentError, "Name must be 2 to 30 letters." unless value.match?(/^(?=.{2,30}$)[A-Za-z]+(?:\s[A-Za-z]+)*$/)
+
+  value
+end
+
+def prompt_age
+  age = prompt_integer("Enter customer age (must be 18 or older):")
+  raise ArgumentError, "Age must be between 18 and 120." unless age.between?(18, 120)
+
+  age
+end
+
+def prompt_phone
+  value = prompt("Enter customer phone:")
+  raise ArgumentError, "Phone number must be exactly 10 digits." unless value.match?(/^\d{10}$/)
+
+  value
+end
+
+def prompt_city
+  prompt("Enter your city:")
+end
+
+def prompt_account_type
+  choice = prompt("Select account type: 1. Savings 2. Current")
+
+  case choice
+  when "1" then "Savings"
+  when "2" then "Current"
+  else
+    raise ArgumentError, "Please choose 1 or 2."
+  end
+end
+
+def prompt_menu_choice(message, valid_choices)
+  choice = prompt_integer(message)
+  raise ArgumentError, "Invalid choice." unless valid_choices.include?(choice)
+
+  choice
 end
 
 def create_account
-  customer_id = ($customers.keys.max || 0) + 1
-  acc_id = ($accounts.keys.max || 0) + 1
+  customer_id = next_id($customers)
+  acc_id = next_id($accounts)
 
-  name = nil
-  3.times do |i|
-    puts "Enter customer name:"
-    input = gets.chomp
-
-    if input.match?(/^(?=.{2,30}$)[A-Za-z]+(?:\s[A-Za-z]+)*$/)
-      name = input
-      break
-    else
-      puts "Invalid name. #{2 - i} attempts left"
-    end
-  end
-
-  return puts("Failed to create account.") if name.nil?
-
-  age = nil
-  3.times do |i|
-    puts "Enter customer age (must be 18 or older):"
-    input = gets.chomp
-
-    if input.match?(/^\d+$/) && input.to_i >= 18 && input.to_i <= 120
-      age = input.to_i
-      break
-    else
-      puts "Invalid age. Must be a number between 18 and 120. #{2 - i} attempts left"
-    end
-  end
-
-  return puts("Failed to create account.") if age.nil?
-
-  phone = nil
-  3.times do |i|
-    puts "Enter customer phone:"
-    input = gets.chomp
-
-    if input.match?(/^\d{10}$/)
-      phone = input
-      break
-    else
-      puts "Invalid phone number. #{2 - i} attempts left"
-    end
-  end
-
-  return puts("Failed to create account.") if phone.nil?
-
-  puts "Enter your city:"
-  city = gets.chomp
-
-  acc_type = nil
-  3.times do |i|
-    puts "Select account type: 1. Savings 2. Current"
-    choice = gets.chomp
-
-    case choice
-    when "1"
-      acc_type = "Savings"
-      break
-    when "2"
-      acc_type = "Current"
-      break
-    else
-      puts "Invalid choice. #{2 - i} attempts left"
-    end
-  end
-
-  return puts("Failed to create account.") if acc_type.nil?
-
-  puts "Enter initial deposit amount:"
-  balance = gets.chomp.to_f
-  return puts("Invalid amount.") unless valid_amount?(balance) # Assumes method exists
+  name = prompt_with_attempts { prompt_name }
+  age = prompt_with_attempts { prompt_age }
+  phone = prompt_with_attempts { prompt_phone }
+  city = prompt_with_attempts { prompt_city }
+  acc_type = prompt_with_attempts { prompt_account_type }
+  balance = prompt_with_attempts { prompt_amount("Enter initial deposit amount:") }
 
   $customers[customer_id] = {
     name: name,
@@ -130,80 +166,57 @@ def create_account
 
   puts "Account created successfully!"
   puts "Account ID: #{acc_id}"
+  puts "Customer ID: #{customer_id}"
+rescue StandardError => e
+  puts "Failed to create account: #{e.message}"
 end
 
 def withdraw(acc_id)
-  return unless valid_account?(acc_id)
-
-  acc = $accounts[acc_id]
-  puts "Enter the amount to withdraw:"
-  amount = gets.chomp.to_f
-  return unless valid_amount?(amount)
-
-  if amount > acc[:balance]
-    puts "Insufficient balance."
-    return
-  end
+  acc = fetch_account!(acc_id)
+  amount = prompt_with_attempts { prompt_amount("Enter the amount to withdraw:") }
+  raise RuntimeError, "Insufficient balance." if amount > acc[:balance]
 
   acc[:balance] -= amount
-  transaction_id = ($transactions.keys.max || 0) + 1
-  $transactions[transaction_id] = {account_id: acc_id, type: "withdrawal", amount: amount}
+  record_transaction(acc_id, "withdrawal", amount, Time.now.strftime("%F %T"))
 
   puts "Transaction successful!"
   puts "Current balance: #{acc[:balance]}"
+rescue StandardError => e
+  puts "Withdrawal failed: #{e.message}"
 end
 
 def deposit(acc_id)
-  return unless valid_account?(acc_id)
-
-  acc = $accounts[acc_id]
-
-  puts "Enter the amount to deposit:"
-  amount = gets.chomp.to_f
-
-  return unless valid_amount?(amount)
+  acc = fetch_account!(acc_id)
+  amount = prompt_with_attempts { prompt_amount("Enter the amount to deposit:") }
 
   acc[:balance] += amount
-
-  transaction_id = ($transactions.keys.max || 0) + 1
-  $transactions[transaction_id] = {account_id: acc_id, type: "deposit", amount: amount}
+  record_transaction(acc_id, "deposit", amount, Time.now.strftime("%F %T"))
 
   puts "Transaction successful!"
   puts "Current balance: #{acc[:balance]}"
+rescue StandardError => e
+  puts "Deposit failed: #{e.message}"
 end
 
 def transfer_amount(sender_id, receiver_id)
-  return unless valid_account?(sender_id)
-  return unless valid_account?(receiver_id)
+  sender_acc = fetch_account!(sender_id)
+  receiver_acc = fetch_account!(receiver_id)
+  raise ArgumentError, "Cannot transfer to the same account." if sender_id == receiver_id
 
-  if sender_id == receiver_id
-    puts "Cannot transfer to the same account."
-    return
-  end
-
-  sender_acc = $accounts[sender_id]
-  receiver_acc = $accounts[receiver_id]
-
-  puts "Enter the amount to transfer:"
-  amount = gets.chomp.to_f
-
-  return unless valid_amount?(amount)
-
-  if amount > sender_acc[:balance]
-    puts "Insufficient balance."
-    return
-  end
+  amount = prompt_with_attempts { prompt_amount("Enter the amount to transfer:") }
+  raise RuntimeError, "Insufficient balance." if amount > sender_acc[:balance]
 
   sender_acc[:balance] -= amount
   receiver_acc[:balance] += amount
 
-  transaction_id = ($transactions.keys.max || 0) + 1
-  $transactions[transaction_id] = {account_id: sender_id, type: "withdrawal", amount: amount}
-
-  transaction_id = ($transactions.keys.max || 0) + 1
-  $transactions[transaction_id] = {account_id: receiver_id, type: "deposit", amount: amount}
+  record_transaction(sender_id, "withdrawal", amount, Time.now.strftime("%F %T"))
+  record_transaction(receiver_id, "deposit", amount, Time.now.strftime("%F %T"))
 
   puts "Transfer successful!"
+  puts "Sender balance: #{sender_acc[:balance]}"
+  puts "Receiver balance: #{receiver_acc[:balance]}"
+rescue StandardError => e
+  puts "Transfer failed: #{e.message}"
 end
 
 $emi = lambda do |principal, rate, months|
@@ -215,27 +228,14 @@ $emi = lambda do |principal, rate, months|
 end
 
 def get_loan
-  loan_id = ($loans.keys.max || 0) + 1
-
-  puts "Enter your customer id:"
-  customer_id = gets.chomp.to_i
-
-  return unless valid_customer?(customer_id)
-
-  puts "Enter the principal amount:"
-  principal = gets.chomp.to_f
-
-  return unless valid_amount?(principal)
+  loan_id = next_id($loans)
+  customer_id = prompt_with_attempts { prompt_integer("Enter your customer id:") }
+  fetch_customer!(customer_id)
+  principal = prompt_with_attempts { prompt_amount("Enter the principal amount:") }
 
   rate = 10
-
-  puts "Enter tenure in months:"
-  tenure = gets.chomp.to_i
-
-  if tenure <= 0
-    puts "Invalid tenure."
-    return
-  end
+  tenure = prompt_with_attempts { prompt_integer("Enter tenure in months:") }
+  raise ArgumentError, "Tenure must be greater than 0." unless tenure > 0
 
   emi_value = $emi.call(principal, rate, tenure).round(2)
 
@@ -249,28 +249,28 @@ def get_loan
   }
 
   puts "Loan request submitted."
+  puts "Loan ID: #{loan_id}"
+rescue StandardError => e
+  puts "Loan request failed: #{e.message}"
 end
 
 def approve_loan(loan_id)
-  loan = $loans[loan_id]
-
-  if loan.nil?
-    puts "Loan not found."
-    return
-  end
-
-  if loan[:status] != "pending"
-    puts "Loan is not in pending status."
-    return
-  end
+  loan = fetch_loan!(loan_id)
+  raise RuntimeError, "Loan is not in pending status." if loan[:status] != "pending"
 
   loan[:status] = "approved"
   puts "Loan approved successfully!"
+rescue StandardError => e
+  puts "Loan approval failed: #{e.message}"
 end
 
 def show_loan_details(customer_id)
+  fetch_customer!(customer_id)
+  found = false
+
   $loans.each do |loan_id, loan|
     if loan[:customer_id] == customer_id
+      puts "----------------------"
       puts "Loan ID: #{loan_id}"
       puts "Principal: #{loan[:principal]}"
       puts "Rate: #{loan[:rate]}"
@@ -278,29 +278,30 @@ def show_loan_details(customer_id)
       puts "EMI: #{loan[:EMI]}"
       puts "Status: #{loan[:status]}"
       puts "----------------------"
+      found = true
     end
   end
+  puts "No loans found for this customer." unless found
+rescue StandardError => e
+  puts "Unable to show loan details: #{e.message}"
 end
 
 def show_account_details(acc_id)
-  acc = $accounts[acc_id]
-
-  if acc.nil?
-    puts "Account not found."
-    return
-  end
-
+  acc = fetch_account!(acc_id)
   customer = $customers[acc[:customer_id]]
 
+  puts "----------------------"
   puts "Account ID: #{acc_id}"
   puts "Customer: #{customer[:name]}"
   puts "Account Type: #{acc[:acc_type]}"
   puts "Balance: #{acc[:balance]}"
+  puts "----------------------"
+rescue StandardError => e
+  puts "Unable to show account details: #{e.message}"
 end
 
 def show_transactions(acc_id)
-  return unless valid_account?(acc_id)
-
+  fetch_account!(acc_id)
   found = false
 
   $transactions.each do |id, txn|
@@ -311,88 +312,149 @@ def show_transactions(acc_id)
   end
 
   puts "No transactions found." unless found
+rescue StandardError => e
+  puts "Unable to show transactions: #{e.message}"
 end
 
-loop do
-  puts "Bank Management System"
-  puts "1. Admin"
-  puts "2. Customer"
-  puts "3. Exit"
-
-  print "Choose an option: "
-  choice = gets.chomp.to_i
-
-  case choice
-  when 1
+def admin_menu
+  loop do
+    puts "----------------------"
     puts "Admin Panel"
+    puts "----------------------"
     puts "1. Create Account"
     puts "2. Approve Loan"
     puts "3. View Account Details"
     puts "4. View Transactions"
+    puts "5. Back to Main Menu"
 
-    print "Choose an option: "
-    admin_choice = gets.chomp.to_i
+    admin_choice = prompt_menu_choice("Choose an option:", [1, 2, 3, 4, 5])
 
     case admin_choice
     when 1
       create_account
     when 2
-      puts "Enter loan ID to approve:"
-      loan_id = gets.chomp.to_i
+      loan_id = prompt_with_attempts { prompt_integer("Enter loan ID to approve:") }
       approve_loan(loan_id)
     when 3
-      puts "Enter account ID to view details:"
-      acc_id = gets.chomp.to_i
+      acc_id = prompt_with_attempts { prompt_integer("Enter account ID to view details:") }
       show_account_details(acc_id)
     when 4
-      puts "Enter account ID to view transactions:"
-      acc_id = gets.chomp.to_i
+      acc_id = prompt_with_attempts { prompt_integer("Enter account ID to view transactions:") }
       show_transactions(acc_id)
-    else
-      puts "Invalid choice."
+    when 5
+      break
     end
+  end
+rescue StandardError => e
+  puts "Admin action failed: #{e.message}"
+end
 
-  when 2
+def customer_menu(customer_id, acc_id)
+  customer, account = fetch_customer_account!(customer_id, acc_id)
+
+  loop do
+    puts "----------------------"
     puts "Customer Panel"
-    puts "1. Deposit"
-    puts "2. Withdraw"
-    puts "3. Transfer Amount"
-    puts "4. Get Loan"
-    puts "5. View Loan Details"
+    puts "Customer: #{customer[:name]}"
+    puts "Customer ID: #{customer_id}"
+    puts "Account ID: #{acc_id}"
+    puts "Account Type: #{account[:acc_type]}"
+    puts "----------------------"
+    puts "1. View Account Details"
+    puts "2. Deposit"
+    puts "3. Withdraw"
+    puts "4. Transfer Amount"
+    puts "5. Get Loan"
+    puts "6. View Loan Details"
+    puts "7. Back to Main Menu"
 
-    print "Choose an option: "
-    customer_choice = gets.chomp.to_i
+    customer_choice = prompt_menu_choice("Choose an option:", [1, 2, 3, 4, 5, 6, 7])
 
     case customer_choice
     when 1
-      puts "Enter account ID to deposit:"
-      acc_id = gets.chomp.to_i
-      deposit(acc_id)
+      show_account_details(acc_id)
     when 2
-      puts "Enter account ID to withdraw:"
-      acc_id = gets.chomp.to_i
-      withdraw(acc_id)
+      deposit(acc_id)
     when 3
-      puts "Enter sender account ID:"
-      sender_id = gets.chomp.to_i
-      puts "Enter receiver account ID:"
-      receiver_id = gets.chomp.to_i
-      transfer_amount(sender_id, receiver_id)
+      withdraw(acc_id)
     when 4
-      get_loan
+      receiver_id = prompt_with_attempts { prompt_integer("Enter receiver account ID:") }
+      transfer_amount(acc_id, receiver_id)
     when 5
-      puts "Enter your customer ID to view loan details:"
-      customer_id = gets.chomp.to_i
+      get_loan_for_customer(customer_id)
+    when 6
       show_loan_details(customer_id)
-    else
-      puts "Invalid choice."
+    when 7
+      break
     end
 
-  when 3
-    puts "Exiting..."
-    break
-
-  else
-    puts "Invalid choice."
+    account = fetch_account!(acc_id)
   end
+rescue StandardError => e
+  puts "Customer action failed: #{e.message}"
+end
+
+def customer_login
+  customer_id = prompt_with_attempts { prompt_integer("Enter your customer ID:") }
+  acc_id = prompt_with_attempts { prompt_integer("Enter your account ID:") }
+  customer, account = fetch_customer_account!(customer_id, acc_id)
+
+  puts "Welcome #{customer[:name]}!"
+  puts "Logged into account #{acc_id} (#{account[:acc_type]})"
+
+  [customer_id, acc_id]
+end
+
+def get_loan_for_customer(customer_id)
+  fetch_customer!(customer_id)
+  loan_id = next_id($loans)
+  principal = prompt_with_attempts { prompt_amount("Enter the principal amount:") }
+
+  rate = 10
+  tenure = prompt_with_attempts { prompt_integer("Enter tenure in months:") }
+  raise ArgumentError, "Tenure must be greater than 0." unless tenure > 0
+
+  emi_value = $emi.call(principal, rate, tenure).round(2)
+
+  $loans[loan_id] = {
+    customer_id: customer_id,
+    principal: principal,
+    rate: rate,
+    tenure: tenure,
+    EMI: emi_value,
+    status: "pending"
+  }
+
+  puts "Loan request submitted."
+  puts "Loan ID: #{loan_id}"
+rescue StandardError => e
+  puts "Loan request failed: #{e.message}"
+end
+
+begin
+  loop do
+    puts "----------------------"
+    puts "Bank Management System"
+    puts "1. Admin"
+    puts "2. Customer"
+    puts "3. Exit"
+    puts "----------------------"
+
+    choice = prompt_menu_choice("Choose an option:", [1, 2, 3])
+
+    case choice
+    when 1
+      admin_menu
+    when 2
+      customer_id, acc_id = customer_login
+      customer_menu(customer_id, acc_id)
+    when 3
+      puts "Exiting..."
+      break
+    end
+  end
+rescue Interrupt
+  puts "\nExiting safely..."
+rescue EOFError => e
+  puts "\n#{e.message}"
 end
