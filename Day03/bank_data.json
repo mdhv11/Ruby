@@ -1,0 +1,191 @@
+{
+  "customers": {
+    "1": {
+      "customer_id": 1,
+      "name": "Aarav Mehta",
+      "age": 28,
+      "phone": "9876543210",
+      "city": "Pune",
+      "status": "active"
+    },
+    "2": {
+      "customer_id": 2,
+      "name": "Sneha Iyer",
+      "age": 34,
+      "phone": "9123456780",
+      "city": "Mumbai",
+      "status": "active"
+    },
+    "3": {
+      "customer_id": 3,
+      "name": "Rohan Sharma",
+      "age": 41,
+      "phone": "9988776655",
+      "city": "Bengaluru",
+      "status": "active"
+    },
+    "4": {
+      "customer_id": 4,
+      "name": "mk",
+      "age": 19,
+      "phone": "1234567890",
+      "city": "pune",
+      "status": "active"
+    }
+  },
+  "banks": {
+    "1": {
+      "bank_id": 1,
+      "bank_name": "Ruby National Bank",
+      "rate": 6.5
+    },
+    "2": {
+      "bank_id": 2,
+      "bank_name": "Metro Finance Bank",
+      "rate": 7.25
+    }
+  },
+  "accounts": {
+    "1": {
+      "bank_id": 1,
+      "acc_id": 1,
+      "customer_id": 1,
+      "balance": 19256.37,
+      "acc_type": "Savings",
+      "status": "active"
+    },
+    "2": {
+      "bank_id": 2,
+      "acc_id": 2,
+      "customer_id": 2,
+      "balance": 23034.640000000007,
+      "acc_type": "Current",
+      "status": "active"
+    },
+    "3": {
+      "bank_id": 1,
+      "acc_id": 3,
+      "customer_id": 3,
+      "balance": 12890.5,
+      "acc_type": "Savings",
+      "status": "active"
+    },
+    "4": {
+      "bank_id": 2,
+      "acc_id": 4,
+      "customer_id": 4,
+      "balance": 12000.0,
+      "acc_type": "Savings",
+      "status": "active"
+    }
+  },
+  "transactions": {
+    "1": {
+      "acc_id": 1,
+      "type": "deposit",
+      "amount": 10000.0,
+      "timestamp": "2026-03-10 09:15:00"
+    },
+    "2": {
+      "acc_id": 1,
+      "type": "withdrawal",
+      "amount": 1500.25,
+      "timestamp": "2026-03-10 14:30:00"
+    },
+    "3": {
+      "acc_id": 2,
+      "type": "deposit",
+      "amount": 25000.0,
+      "timestamp": "2026-03-11 11:00:00"
+    },
+    "4": {
+      "acc_id": 3,
+      "type": "deposit",
+      "amount": 5000.5,
+      "timestamp": "2026-03-11 16:45:00"
+    },
+    "5": {
+      "acc_id": 2,
+      "type": "emi_payment",
+      "amount": 8791.59,
+      "timestamp": "2026-03-12 08:20:00"
+    },
+    "6": {
+      "acc_id": 2,
+      "type": "emi_payment",
+      "amount": 8791.59,
+      "timestamp": "2026-03-12 13:37:14"
+    },
+    "7": {
+      "acc_id": 2,
+      "type": "emi_payment",
+      "amount": 8791.59,
+      "timestamp": "2026-03-12 17:26:04"
+    },
+    "8": {
+      "acc_id": 1,
+      "type": "account_transfer",
+      "amount": 1.0,
+      "timestamp": "2026-03-12 17:27:47"
+    },
+    "9": {
+      "acc_id": 2,
+      "type": "account_transfer",
+      "amount": 1.0,
+      "timestamp": "2026-03-12 17:27:47"
+    },
+    "10": {
+      "acc_id": 2,
+      "type": "emi_payment",
+      "amount": 8791.59,
+      "timestamp": "2026-03-12 17:41:31"
+    },
+    "11": {
+      "acc_id": 2,
+      "type": "emi_payment",
+      "amount": 8791.59,
+      "timestamp": "2026-03-12 17:49:52"
+    },
+    "12": {
+      "acc_id": 1,
+      "type": "emi_payment",
+      "amount": 5243.38,
+      "timestamp": "2026-03-12 17:57:10"
+    }
+  },
+  "loans": {
+    "1": {
+      "customer_id": 2,
+      "acc_id": 2,
+      "principal": 100000.0,
+      "rate": 10.0,
+      "tenure": 12,
+      "emi": 8791.59,
+      "amount_paid": 52749.53999999999,
+      "amount_remaining": 52749.54,
+      "status": "approved"
+    },
+    "2": {
+      "customer_id": 1,
+      "acc_id": 1,
+      "principal": 50000.0,
+      "rate": 10.0,
+      "tenure": 10,
+      "emi": 5243.38,
+      "amount_paid": 5243.38,
+      "amount_remaining": 47190.42,
+      "status": "approved"
+    },
+    "3": {
+      "customer_id": 3,
+      "acc_id": 3,
+      "principal": 20000.0,
+      "rate": 10.0,
+      "tenure": 4,
+      "emi": 5115.72,
+      "amount_paid": 20462.88,
+      "amount_remaining": 0.0,
+      "status": "closed"
+    }
+  }
+}

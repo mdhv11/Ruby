@@ -1,6 +1,4 @@
-require_relative 'Customer'
-
-module Bank
+module BankService
   class Bank
     attr_accessor :bank_id, :bank_name, :rate
 
@@ -12,13 +10,14 @@ module Bank
   end
 
   class Account
-    attr_accessor :bank_id, :acc_id, :customer_id, :balance
+    attr_accessor :bank_id, :acc_id, :customer_id, :balance, :status
 
-    def initialize(bank_id,acc_id,customer_id,balance)
+    def initialize(bank_id,acc_id,customer_id,balance,status="active")
       @bank_id = bank_id
       @acc_id = acc_id
       @customer_id = customer_id
       @balance = balance
+      @status = status
     end
 
     def deposit(amount)
@@ -69,14 +68,18 @@ module Bank
   end
 
   class Loans
-    attr_accessor :customer_id, :acc_id, :principal, :rate, :tenure, :emi, :status
+    attr_accessor :loan_id, :customer_id, :acc_id, :principal, :rate, :tenure, :emi, :amount_paid, :amount_remaining, :status
 
-    def initialize(customer_id, acc_id, principal, rate, tenure, emi, status)
+    def initialize(loan_id, customer_id, acc_id, principal, rate, tenure, emi, status)
+      @loan_id = loan_id
       @customer_id = customer_id
       @acc_id = acc_id
       @principal = principal
+      @rate = rate
       @tenure = tenure
       @emi = emi
+      @amount_paid = 0.0
+      @amount_remaining = (emi * tenure).round(2)
       @status = status
     end
 
