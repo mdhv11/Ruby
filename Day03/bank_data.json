@@ -5,7 +5,7 @@
       "name": "Aarav Mehta",
       "age": 28,
       "phone": "9876543210",
-      "city": "Pune",
+      "address": "#<Address:0x00007f026cfe81c8>",
       "status": "active"
     },
     "2": {
@@ -13,7 +13,7 @@
       "name": "Sneha Iyer",
       "age": 34,
       "phone": "9123456780",
-      "city": "Mumbai",
+      "address": "#<Address:0x00007f026cfe8128>",
       "status": "active"
     },
     "3": {
@@ -21,7 +21,7 @@
       "name": "Rohan Sharma",
       "age": 41,
       "phone": "9988776655",
-      "city": "Bengaluru",
+      "address": "#<Address:0x00007f026cfe8088>",
       "status": "active"
     },
     "4": {
@@ -29,7 +29,15 @@
       "name": "mk",
       "age": 19,
       "phone": "1234567890",
-      "city": "pune",
+      "address": "#<Address:0x00007f026cfe7fe8>",
+      "status": "active"
+    },
+    "5": {
+      "customer_id": 5,
+      "name": "madhav",
+      "age": 25,
+      "phone": "9876543210",
+      "address": "#<Address:0x00007f026cfe6cd8>",
       "status": "active"
     }
   },
@@ -75,6 +83,14 @@
       "acc_id": 4,
       "customer_id": 4,
       "balance": 12000.0,
+      "acc_type": "Savings",
+      "status": "active"
+    },
+    "5": {
+      "bank_id": 1,
+      "acc_id": 5,
+      "customer_id": 5,
+      "balance": 10000.0,
       "acc_type": "Savings",
       "status": "active"
     }

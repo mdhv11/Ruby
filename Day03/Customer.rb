@@ -1,14 +1,21 @@
 class Customer
-  attr_accessor :customer_id, :name, :age, :phone, :city, :status
+  attr_accessor :customer_id, :name, :age, :phone, :address, :status
 
-  def initialize(customer_id, name, age, phone, city, status = "registered")
+  def initialize(customer_id, name, age, phone, address, status = "registered")
     @customer_id = customer_id
     @name = name
     @age = age
     @phone = phone
-    @city = city
+    @address = address
     @status = status
   end
+
+  def to_s
+    "Customer: #{@name}, Age: #{@age}, Phone: #{@phone}, " \
+      "Address: #{@address.street}, #{@address.city}, #{@address.state} - #{@address.zip_code}, " \
+      "Status: #{@status}"
+  end
+
 
   # def display
   #   puts "Name is: #@name"
@@ -36,6 +43,17 @@ class Customer
   #   puts "Enter your city: "
   #   @city = gets.chomp
   # end
+end
+
+class Address
+  attr_accessor :street, :city, :state, :zip_code
+
+  def initialize(street, city, state, zip_code)
+    @street = street
+    @city = city
+    @state = state
+    @zip_code = zip_code
+  end
 end
 
 # c1 = Customer.new("m", 24, "1234567890", "Pune")

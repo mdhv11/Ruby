@@ -23,7 +23,7 @@ class BankSystem
           name: customer.name,
           age: customer.age,
           phone: customer.phone,
-          city: customer.city,
+          address: customer.address,
           status: customer.status
         }
       end,
@@ -133,7 +133,12 @@ class BankSystem
         customer['name'],
         customer['age'],
         customer['phone'],
-        customer['city'],
+        Address.new(
+          customer['address']['street'],
+          customer['address']['city'],
+          customer['address']['state'],
+          customer['address']['zip_code']
+        ),
         customer['status'] || 'registered'
       )
     end
@@ -420,11 +425,16 @@ class BankSystem
     phone = get_valid_input("Enter customer phone (10 digits):", /^\d{10}$/, "Invalid phone number.")
     return puts("Failed to register customer.") unless phone
 
-    city = prompt_with_attempts { prompt("Enter your city:") }
+    address = Address.new(
+      prompt_with_attempts { prompt("Enter your street:") },
+      prompt_with_attempts { prompt("Enter your city:") },
+      prompt_with_attempts { prompt("Enter your state:") },
+      prompt_with_attempts { prompt("Enter your zip code:") }
+    )
 
     customer_id = (@customers.keys.max || 0) + 1
 
-    customer = Customer.new(customer_id, name, age, phone, city, "registered")
+    customer = Customer.new(customer_id, name, age, phone, address, "registered")
     @customers[customer_id] = customer
 
     save_data
@@ -647,6 +657,7 @@ class BankSystem
     puts "Account ID: #{acc_id}"
     puts "Customer: #{customer.name}"
     puts "Customer Status: #{customer.status}"
+    puts "Address: #{customer.address.street}, #{customer.address.city}, #{customer.address.state} - #{customer.address.zip_code}"
     puts "Account Type: #{acc.acc_type}"
     puts "Balance: #{acc.balance}"
     puts "-----------------------"
@@ -695,7 +706,7 @@ class BankSystem
     puts "\n--- Registered Customers ---"
     @customers.values.sort_by(&:customer_id).each do |customer|
       account_count = @accounts.values.count { |account| account.customer_id == customer.customer_id }
-      puts "Customer ID: #{customer.customer_id} | Name: #{customer.name} | Status: #{customer.status} | Phone: #{customer.phone} | City: #{customer.city} | Accounts: #{account_count}"
+      puts "Customer ID: #{customer.customer_id} | Name: #{customer.name} | Status: #{customer.status} | Phone: #{customer.phone} | Address: #{customer.address.street}, #{customer.address.city}, #{customer.address.state} - #{customer.address.zip_code} | Accounts: #{account_count}"
     end
   end
 
