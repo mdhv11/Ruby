@@ -58,3 +58,4 @@ build-iPhoneSimulator/
 Gemfile
 Gemfile.lock
 vendor/
+.ruby-version

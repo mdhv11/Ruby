@@ -25,7 +25,7 @@ class Person
 end
 
 class Dog
-  
+  include Test
 end
 
 def make_speak(object)
@@ -41,6 +41,7 @@ d1= Duck.new
 puts d1.respond_to?(:speak)
 puts d1.send(:speak)
 puts d1.send(:walk)
+puts d1.send(:talk)
 puts d1.respond_to?(:walk)
 d1.hello
 
