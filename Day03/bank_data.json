@@ -46,7 +46,7 @@
       "acc_id": 1,
       "customer_id": 1,
       "interest_rate": 8.0,
-      "balance": 1091.84,
+      "balance": 936558.4656123248,
       "acc_type": "Savings",
       "status": "active",
       "created_at": "2026-03-13 18:28:37"
@@ -56,7 +56,7 @@
       "acc_id": 2,
       "customer_id": 2,
       "interest_rate": 8.0,
-      "balance": 700000.0,
+      "balance": 6999.0,
       "acc_type": "Savings",
       "status": "active",
       "created_at": "2026-03-13 18:39:17"
@@ -80,6 +80,36 @@
       "type": "loan_disbursement",
       "amount": 600000.0,
       "timestamp": "2026-03-13 18:40:30"
+    },
+    "4": {
+      "acc_id": 1,
+      "type": "loan_disbursement",
+      "amount": 1000000.0,
+      "timestamp": "2026-03-13 19:10:24"
+    },
+    "5": {
+      "acc_id": 1,
+      "type": "emi_payment",
+      "amount": 32267.18719383758,
+      "timestamp": "2026-03-13 19:11:21"
+    },
+    "6": {
+      "acc_id": 1,
+      "type": "emi_payment",
+      "amount": 32267.18719383758,
+      "timestamp": "2026-03-13 19:11:51"
+    },
+    "7": {
+      "acc_id": 2,
+      "type": "account_transfer",
+      "amount": 1.0,
+      "timestamp": "2026-03-14 09:43:37"
+    },
+    "8": {
+      "acc_id": 1,
+      "type": "account_transfer",
+      "amount": 1.0,
+      "timestamp": "2026-03-14 09:43:37"
     }
   },
   "loans": {
@@ -114,6 +144,22 @@
       "status": "approved",
       "loan_start_date": "2026-03-13 18:40:05",
       "loan_end_date": "2029-02-25 18:40:05"
+    },
+    "3": {
+      "loan_id": 3,
+      "customer_id": 1,
+      "acc_id": 1,
+      "principal": 1000000.0,
+      "loan_rate": 10.0,
+      "tenure": 36,
+      "installments_paid": 2,
+      "installments_remaining": 34,
+      "emi": 32267.18719383758,
+      "amount_paid": 64534.37438767516,
+      "amount_remaining": 1097084.37,
+      "status": "approved",
+      "loan_start_date": "2026-03-13 19:09:31",
+      "loan_end_date": "2029-02-25 19:09:31"
     }
   }
 }

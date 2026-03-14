@@ -4,6 +4,7 @@ require 'json'
 require 'date'
 require 'rainbow'
 require 'tty-prompt'
+require 'io/console'
 
 class BankSystem
   DATA_FILE = File.join(__dir__, 'bank_data.json').freeze
@@ -204,7 +205,8 @@ class BankSystem
       menu.choice "Pay EMI", 8
       menu.choice "Request Loan Closure", 9
       menu.choice "Deactivate Account", 10
-      menu.choice "Back to Main Menu", 11
+      menu.choice "View months you can shelve on a lump-sump payment", 11
+      menu.choice "Back to Main Menu", 12
     end
   end
 
@@ -367,7 +369,8 @@ class BankSystem
           when 8 then pay_emi(customer_id, acc_id, prompt_with_attempts { prompt_integer("Enter loan ID to pay EMI:") })
           when 9 then request_loan_closure(customer_id, acc_id, prompt_with_attempts { prompt_integer("Enter loan ID to request closure:") })
           when 10 then deactivate_account(acc_id)
-          when 11 then break
+          when 11 then show_prepayment_tenure_reduction
+          when 12 then break
           else
             raise ArgumentError, "Invalid choice."
           end
@@ -394,6 +397,19 @@ class BankSystem
     raise ArgumentError, "Input cannot be empty." if value.empty?
 
     value.strip
+  end
+
+  def prompt_hidden(message)
+    print Rainbow(message).cyan
+    value = STDIN.noecho(&:gets)
+    puts
+
+    raise ArgumentError, "Input cannot be empty." if value.nil?
+
+    value = value.chomp.strip
+    raise ArgumentError, "Input cannot be empty." if value.empty?
+
+    value
   end
 
   def prompt_integer(message)
@@ -505,7 +521,7 @@ class BankSystem
   def customer_login
     customer_id = prompt_with_attempts { prompt_integer("Enter your customer ID:") }
     acc_id = prompt_with_attempts { prompt_integer("Enter your account ID:") }
-    password = prompt_with_attempts { prompt("Enter your password:") }
+    password = prompt_with_attempts { prompt_hidden("Enter your password: ") }
     customer, account = fetch_customer_account(customer_id, acc_id, password)
     raise RuntimeError, "Customer is inactive. Please contact the bank." if customer.status == "inactive"
     raise RuntimeError, "This account is deactivated. Please contact the bank." if account.status == "deactivated"
@@ -542,7 +558,7 @@ class BankSystem
     phone = get_valid_input("Enter customer phone (10 digits):", /^\d{10}$/, "Invalid phone number.")
     return say_warning("Failed to register customer.") unless phone
 
-    password = prompt_with_attempts { prompt("Set your account password:") }
+    password = prompt_with_attempts { prompt_hidden("Set your account password: ") }
     return say_warning("Failed to register customer.") unless password
 
     address = Address.new(
@@ -918,7 +934,7 @@ class BankSystem
       customer_accounts = @accounts.values.select { |account| account.customer_id == loan.customer_id }
       total_balance = customer_accounts.sum(&:balance)
 
-      loan.principal > 5 * total_balance
+      loan.principal > 2 * total_balance
     end
 
     return say_warning("No customers found with loans exceeding 5x account balance.") if risky_loans.empty?
