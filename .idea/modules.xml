@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/Ruby.iml" filepath="$PROJECT_DIR$/.idea/Ruby.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/bundler-4.0.8/bundler-4.0.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/bundler-4.0.8/bundler-4.0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/debug-1.11.1/debug-1.11.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/debug-1.11.1/debug-1.11.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/erb-6.0.2/erb-6.0.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/erb-6.0.2/erb-6.0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/irb-1.17.0/irb-1.17.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/irb-1.17.0/irb-1.17.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/pp-0.6.3/pp-0.6.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/pp-0.6.3/pp-0.6.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/prettyprint-0.2.0/prettyprint-0.2.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/prettyprint-0.2.0/prettyprint-0.2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/prism-1.9.0/prism-1.9.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/prism-1.9.0/prism-1.9.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/rbs-3.10.3/rbs-3.10.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/rbs-3.10.3/rbs-3.10.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/rdoc-7.2.0/rdoc-7.2.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/rdoc-7.2.0/rdoc-7.2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/specifications/specifications.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/specifications/specifications.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/tsort-0.2.0/tsort-0.2.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/tsort-0.2.0/tsort-0.2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/wisper-2.0.1/wisper-2.0.iml" filepath="$PROJECT_DIR$/vendor/bundle/ruby/3.4.0/gems/wisper-2.0.1/wisper-2.0.iml" />
+    </modules>
+  </component>
+</project>
