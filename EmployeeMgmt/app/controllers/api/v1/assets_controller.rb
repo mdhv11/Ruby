@@ -1,5 +1,3 @@
-# app/controllers/api/v1/assets_controller.rb
-
 module Api
   module V1
     class AssetsController < ApplicationController

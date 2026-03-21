@@ -36,7 +36,9 @@ Rails.application.routes.draw do
 
       # Employees (top-level, filter by dept/org via query params)
       resources :employees do
+        collection {post :register} 
         member do
+          patch :onboard
           get   :profile
           patch :deactivate
           patch :transfer

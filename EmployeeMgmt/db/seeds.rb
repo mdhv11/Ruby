@@ -19,6 +19,7 @@ LeaveBalance.delete_all
 LeavePolicy.delete_all
 EmployeeRoleHistory.delete_all
 EmployeeDepartmentHistory.delete_all
+Department.update_all(manager_id: nil)
 Employee.delete_all
 Role.delete_all
 Department.delete_all
@@ -301,23 +302,40 @@ policy_paid_sales = LeavePolicy.create!(dept_id: dept_sales.dept_id, leave_type:
 policy_unpaid_sales = LeavePolicy.create!(dept_id: dept_sales.dept_id, leave_type: "unpaid", days_allowed: 8, carry_forward: false)
 
 # ==============================================================================
-# LEAVE BALANCES (current year)
+# LEAVE BALANCES + LEAVES
+# Keep leave requests in a non-past seed window that matches the seeded balance year.
 # ==============================================================================
 
-year = Date.today.year
+current_date = Date.current
+leave_seed_base =
+  if current_date.yday <= 240
+    current_date + 7.days
+  else
+    Date.new(current_date.year + 1, 1, 10)
+  end
+
+leave_year = leave_seed_base.year
+leave_period = lambda do |offset_days, duration_days|
+  start_on = leave_seed_base + offset_days.days
+
+  {
+    start_date: start_on,
+    end_date: start_on + (duration_days - 1).days
+  }
+end
 
 [
-  { emp_id: emp_alice.emp_id,   policy_id: policy_paid_eng.policy_id,    year: year, total_allowed: 18, used: 3,  remaining: 15 },
-  { emp_id: emp_alice.emp_id,   policy_id: policy_unpaid_eng.policy_id,  year: year, total_allowed: 10, used: 0,  remaining: 10 },
-  { emp_id: emp_bob.emp_id,     policy_id: policy_paid_eng.policy_id,    year: year, total_allowed: 18, used: 5,  remaining: 13 },
-  { emp_id: emp_bob.emp_id,     policy_id: policy_unpaid_eng.policy_id,  year: year, total_allowed: 10, used: 2,  remaining: 8  },
-  { emp_id: emp_charlie.emp_id, policy_id: policy_paid_eng.policy_id,    year: year, total_allowed: 18, used: 1,  remaining: 17 },
-  { emp_id: emp_ivan.emp_id,    policy_id: policy_paid_eng.policy_id,    year: year, total_allowed: 18, used: 7,  remaining: 11 },
-  { emp_id: emp_diana.emp_id,   policy_id: policy_paid_hr.policy_id,     year: year, total_allowed: 15, used: 4,  remaining: 11 },
-  { emp_id: emp_ethan.emp_id,   policy_id: policy_paid_hr.policy_id,     year: year, total_allowed: 15, used: 2,  remaining: 13 },
-  { emp_id: emp_jane.emp_id,    policy_id: policy_paid_hr.policy_id,     year: year, total_allowed: 15, used: 3,  remaining: 12 },
-  { emp_id: emp_fatima.emp_id,  policy_id: policy_paid_sales.policy_id,  year: year, total_allowed: 12, used: 6,  remaining: 6  },
-  { emp_id: emp_george.emp_id,  policy_id: policy_paid_sales.policy_id,  year: year, total_allowed: 12, used: 1,  remaining: 11 },
+  { emp_id: emp_alice.emp_id,   policy_id: policy_paid_eng.policy_id,    year: leave_year, total_allowed: 18, used: 3,  remaining: 15 },
+  { emp_id: emp_alice.emp_id,   policy_id: policy_unpaid_eng.policy_id,  year: leave_year, total_allowed: 10, used: 0,  remaining: 10 },
+  { emp_id: emp_bob.emp_id,     policy_id: policy_paid_eng.policy_id,    year: leave_year, total_allowed: 18, used: 5,  remaining: 13 },
+  { emp_id: emp_bob.emp_id,     policy_id: policy_unpaid_eng.policy_id,  year: leave_year, total_allowed: 10, used: 2,  remaining: 8  },
+  { emp_id: emp_charlie.emp_id, policy_id: policy_paid_eng.policy_id,    year: leave_year, total_allowed: 18, used: 1,  remaining: 17 },
+  { emp_id: emp_ivan.emp_id,    policy_id: policy_paid_eng.policy_id,    year: leave_year, total_allowed: 18, used: 7,  remaining: 11 },
+  { emp_id: emp_diana.emp_id,   policy_id: policy_paid_hr.policy_id,     year: leave_year, total_allowed: 15, used: 4,  remaining: 11 },
+  { emp_id: emp_ethan.emp_id,   policy_id: policy_paid_hr.policy_id,     year: leave_year, total_allowed: 15, used: 2,  remaining: 13 },
+  { emp_id: emp_jane.emp_id,    policy_id: policy_paid_hr.policy_id,     year: leave_year, total_allowed: 15, used: 3,  remaining: 12 },
+  { emp_id: emp_fatima.emp_id,  policy_id: policy_paid_sales.policy_id,  year: leave_year, total_allowed: 12, used: 6,  remaining: 6  },
+  { emp_id: emp_george.emp_id,  policy_id: policy_paid_sales.policy_id,  year: leave_year, total_allowed: 12, used: 1,  remaining: 11 },
 ].each { |r| LeaveBalance.create!(r) }
 
 # ==============================================================================
@@ -325,15 +343,15 @@ year = Date.today.year
 # ==============================================================================
 
 [
-  { emp_id: emp_alice.emp_id,   policy_id: policy_paid_eng.policy_id,    start_date: "2025-01-06", end_date: "2025-01-08", reason: "Personal work",      status: "approved", approved_by: emp_diana.emp_id },
-  { emp_id: emp_bob.emp_id,     policy_id: policy_paid_eng.policy_id,    start_date: "2025-02-10", end_date: "2025-02-12", reason: "Medical",             status: "approved", approved_by: emp_diana.emp_id },
-  { emp_id: emp_bob.emp_id,     policy_id: policy_unpaid_eng.policy_id,  start_date: "2025-03-01", end_date: "2025-03-02", reason: "Family event",        status: "approved", approved_by: emp_diana.emp_id },
-  { emp_id: emp_charlie.emp_id, policy_id: policy_paid_eng.policy_id,    start_date: "2025-03-10", end_date: "2025-03-10", reason: "Sick",                status: "pending",  approved_by: nil },
-  { emp_id: emp_diana.emp_id,   policy_id: policy_paid_hr.policy_id,     start_date: "2025-01-20", end_date: "2025-01-23", reason: "Vacation",            status: "approved", approved_by: emp_jane.emp_id },
-  { emp_id: emp_ethan.emp_id,   policy_id: policy_unpaid_hr.policy_id,   start_date: "2025-02-17", end_date: "2025-02-18", reason: "Personal emergency",  status: "approved", approved_by: emp_diana.emp_id },
-  { emp_id: emp_ivan.emp_id,    policy_id: policy_paid_eng.policy_id,    start_date: "2025-03-15", end_date: "2025-03-20", reason: "Medical procedure",   status: "approved", approved_by: emp_diana.emp_id },
-  { emp_id: emp_fatima.emp_id,  policy_id: policy_paid_sales.policy_id,  start_date: "2025-02-05", end_date: "2025-02-10", reason: "Travel",              status: "approved", approved_by: emp_diana.emp_id },
-  { emp_id: emp_george.emp_id,  policy_id: policy_paid_sales.policy_id,  start_date: "2025-03-25", end_date: "2025-03-25", reason: "Personal",            status: "rejected", approved_by: emp_fatima.emp_id },
+  { emp_id: emp_alice.emp_id,   policy_id: policy_paid_eng.policy_id,    reason: "Personal work",      status: "approved", approved_by: emp_diana.emp_id }.merge(leave_period.call(0, 3)),
+  { emp_id: emp_bob.emp_id,     policy_id: policy_paid_eng.policy_id,    reason: "Medical",             status: "approved", approved_by: emp_diana.emp_id }.merge(leave_period.call(10, 3)),
+  { emp_id: emp_bob.emp_id,     policy_id: policy_unpaid_eng.policy_id,  reason: "Family event",        status: "approved", approved_by: emp_diana.emp_id }.merge(leave_period.call(20, 2)),
+  { emp_id: emp_charlie.emp_id, policy_id: policy_paid_eng.policy_id,    reason: "Sick",                status: "pending",  approved_by: nil }.merge(leave_period.call(30, 1)),
+  { emp_id: emp_diana.emp_id,   policy_id: policy_paid_hr.policy_id,     reason: "Vacation",            status: "approved", approved_by: emp_jane.emp_id }.merge(leave_period.call(40, 4)),
+  { emp_id: emp_ethan.emp_id,   policy_id: policy_unpaid_hr.policy_id,   reason: "Personal emergency",  status: "approved", approved_by: emp_diana.emp_id }.merge(leave_period.call(50, 2)),
+  { emp_id: emp_ivan.emp_id,    policy_id: policy_paid_eng.policy_id,    reason: "Medical procedure",   status: "approved", approved_by: emp_diana.emp_id }.merge(leave_period.call(60, 6)),
+  { emp_id: emp_fatima.emp_id,  policy_id: policy_paid_sales.policy_id,  reason: "Travel",              status: "approved", approved_by: emp_diana.emp_id }.merge(leave_period.call(75, 6)),
+  { emp_id: emp_george.emp_id,  policy_id: policy_paid_sales.policy_id,  reason: "Personal",            status: "rejected", approved_by: emp_fatima.emp_id }.merge(leave_period.call(90, 1)),
 ].each { |r| Leave.create!(r) }
 
 # ==============================================================================

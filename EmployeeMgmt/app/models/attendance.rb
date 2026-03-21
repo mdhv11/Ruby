@@ -35,7 +35,7 @@ class Attendance < ApplicationRecord
   def calculate_hours
     if check_in_time.present? && check_out_time.present?
       self.total_hours    = ((check_out_time - check_in_time) / 3600.0).round(2)
-      self.overtime_hours = [total_hours - STANDARD_HOURS, 0.0].max.round(2)
+      self.overtime_hours = [total_hours - standard_hours, 0.0].max.round(2)
     else
       self.total_hours    = 0.0
       self.overtime_hours = 0.0
@@ -45,9 +45,9 @@ class Attendance < ApplicationRecord
   def derive_status
     if check_in_time.blank? && check_out_time.blank?
       self.status = :absent
-    elsif total_hours >= STANDARD_HOURS
+    elsif total_hours >= standard_hours
       self.status = :present
-    elsif total_hours >= HALF_DAY_MINIMUM
+    elsif total_hours >= half_day_minimum
       self.status = :half_day
     else
       self.status = :absent

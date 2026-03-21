@@ -49,7 +49,7 @@ module Api
                                         .sum(:overtime_hours).to_f
 
         dept                  = @employee.department
-        overtime_rate         = dept&.overtime_pay_per_hour || 0
+        overtime_rate         = dept&.overtime_pay_per_hour || 200
         overtime_bonus        = (total_overtime_hours * overtime_rate).round(2)
 
         unpaid_policy = LeavePolicy.find_by(dept_id: @employee.dept_id, leave_type: "unpaid")
@@ -64,7 +64,8 @@ module Api
                              .sum { |l| (l.end_date - l.start_date).to_i + 1 }
         end
 
-        daily_rate            = (structure.basic_salary / 22.0).round(2)  # 22 working days assumed
+        working_days_in_month = monthly_working_days_for(@employee, month, year)
+        daily_rate            = (structure.basic_salary / working_days_in_month.to_f).round(2)
         unpaid_leave_deduct   = (daily_rate * unpaid_days).round(2)
 
         payslip = @employee.payslips.new(
@@ -144,6 +145,15 @@ module Api
           amount_disbursed: payroll.amount_disbursed,
           date:            payroll.date
         }
+      end
+
+      def monthly_working_days_for(employee, month, year)
+        working_days = employee.department&.working_days.to_a.reject(&:blank?)
+        return 20 if working_days.blank?
+
+        (Date.new(year, month, 1)..Date.new(year, month, -1)).count do |date|
+          working_days.include?(date.strftime("%A"))
+        end
       end
     end
   end

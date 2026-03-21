@@ -2,7 +2,7 @@ module Api
   module V1
     class EmployeesController < ApplicationController
 
-      before_action :set_employee, only: [:show, :update, :deactivate, :profile, :transfer, :change_role]
+      before_action :set_employee, only: [:show, :update, :deactivate, :profile, :transfer, :change_role, :onboard]
 
       def index
         employees = Employee.includes(:department, :employee_role_histories)
@@ -34,36 +34,67 @@ module Api
         }, status: :ok
       end
 
-      def create
-        employee = Employee.new(employee_params)
+      def register
+        employee = Employee.new(register_params.merge(status: "onboarding"))
+
+        if employee.save
+          render json: employee_summary_json(employee), status: :created
+        else
+          render json: { errors: employee.errors.full_messages }, status: :unprocessable_entity
+        end
+      end
+
+
+      def onboard
+        unless @employee.status_onboarding?
+          return render json: { error: "Employee is not in onboarding status" }, status: :unprocessable_entity
+        end
+
+        dept_id = params[:dept_id]
+        role_id = params[:role_id]
+        join_date = params[:joining_date]&.to_date || Date.current.to_date
+
+        return render json: { error: "dept_id is required" }, status: :bad_request unless dept_id.present?
+
+        department = Department.find_by(dept_id: dept_id)
+        return render json: { error: "Department not found" }, status: :not_found unless department
+
+        role = nil
+        if role_id.present?
+          role = Role.find_by(role_id: role_id)
+          return render json: { error: "Role not found" }, status: :not_found unless role
+          return render json: { error: "Role does not belong to the selected department" }, status: :unprocessable_entity unless role.dept_id == department.dept_id
+        end
 
         ActiveRecord::Base.transaction do
-          employee.save!
+          @employee.update!(
+            dept_id:      department.dept_id,
+            joining_date: join_date,
+            status:       "active"
+          )
 
           EmployeeDepartmentHistory.create!(
-            emp_id:     employee.emp_id,
-            dept_id:    employee.dept_id,
-            start_date: employee.joining_date,
+            emp_id:     @employee.emp_id,
+            dept_id:    department.dept_id,
+            start_date: join_date,
             end_date:   nil
           )
 
-          if params[:employee][:role_id].present?
+          if role.present?
             EmployeeRoleHistory.create!(
-              emp_id:     employee.emp_id,
-              role_id:    params[:employee][:role_id],
-              start_date: employee.joining_date,
+              emp_id:     @employee.emp_id,
+              role_id:    role.role_id,
+              start_date: join_date,
               end_date:   nil
             )
           end
         end
 
-        render json: employee_summary_json(employee), status: :created
+        render json: employee_summary_json(@employee.reload), status: :ok
       rescue ActiveRecord::RecordInvalid => e
         render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
       end
 
-      # PATCH/PUT /api/v1/employees/:id
-      # Updates personal info only — dept and role changes go through transfer/change_role
       def update
         if @employee.update(employee_params)
           render json: employee_summary_json(@employee), status: :ok
@@ -117,6 +148,7 @@ module Api
 
         ActiveRecord::Base.transaction do
           @employee.employee_department_histories.where(end_date: nil).update_all(end_date: effective_date)
+          @employee.employee_role_histories.where(end_date: nil).update_all(end_date: effective_date)
 
           EmployeeDepartmentHistory.create!(
             emp_id:     @employee.emp_id,
@@ -146,6 +178,7 @@ module Api
 
         new_role = Role.find_by(role_id: new_role_id)
         return render json: { error: "Role not found" }, status: :not_found unless new_role
+        return render json: { error: "Role does not belong to the employee's department" }, status: :unprocessable_entity unless new_role.dept_id == @employee.dept_id
 
         current_open = @employee.employee_role_histories.find_by(end_date: nil)
 
@@ -183,7 +216,14 @@ module Api
         params.require(:employee).permit(
           :name, :email, :phone, :address, :gender,
           :dept_id, :joining_date, :date_of_birth,
-          :status, :termination_reason, :resignation_date
+          :termination_reason, :resignation_date
+        )
+      end
+
+      def register_params
+        params.require(:employee).permit(
+          :name, :email, :phone, :address,
+          :gender, :date_of_birth
         )
       end
 

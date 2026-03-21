@@ -3,15 +3,16 @@ class Employee < ApplicationRecord
 
   enum :gender, { male: "male", female: "female" }, prefix: true
   enum :status, {
-    active:     "active",
-    on_leave:   "on_leave",
-    terminated: "terminated",
-    resigned:   "resigned"
-  }, prefix: true
+  onboarding:  "onboarding",
+  active:      "active",
+  on_leave:    "on_leave",
+  terminated:  "terminated",
+  resigned:    "resigned"
+}, prefix: true
 
   normalize_enum_attributes :gender, :status
 
-  belongs_to :department, foreign_key: :dept_id, primary_key: :dept_id
+  belongs_to :department, foreign_key: :dept_id, primary_key: :dept_id, optional: true
 
   has_many :employee_department_histories, foreign_key: :emp_id, primary_key: :emp_id
   has_many :employee_role_histories,       foreign_key: :emp_id, primary_key: :emp_id
@@ -33,9 +34,8 @@ class Employee < ApplicationRecord
   validates :email,        presence: true, uniqueness: { case_sensitive: false },
             format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :phone,        presence: true
-  validates :dept_id,      presence: true
-  validates :joining_date, presence: true
-  validates :status,       presence: true
+  validates :dept_id,      presence: true, unless: -> { status_onboarding? }
+  validates :joining_date, presence: true, unless: -> { status_onboarding? }
   validates :gender,       presence: true
 
   validate :resignation_date_after_joining, if: -> { resignation_date.present? }

@@ -1,6 +1,8 @@
 class Payroll < ApplicationRecord
   self.primary_key = :payroll_id
 
+  alias_attribute :amount_disbursed, :salary
+
   belongs_to :payslip, foreign_key: :payslip_id, primary_key: :payslip_id
 
   validates :payslip_id,       presence: true

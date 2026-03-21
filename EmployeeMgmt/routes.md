@@ -57,7 +57,8 @@
 
 ## Employees
 - GET    /api/v1/employees                         api/v1/employees#index
-- POST   /api/v1/employees                         api/v1/employees#create
+- POST   /api/v1/employees/register                api/v1/employees#register
+- PATCH  /api/v1/employees/:id/onboard             api/v1/employees#onboard
 - GET    /api/v1/employees/:id                     api/v1/employees#show
 - PATCH  /api/v1/employees/:id                     api/v1/employees#update
 - PUT    /api/v1/employees/:id                     api/v1/employees#update
