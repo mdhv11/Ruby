@@ -61,7 +61,12 @@ module Api
           returned_date: nil
         )
 
-        if history.save && @asset.update!(status: "assigned")
+        success = ActiveRecord::Base.transaction do
+          history.save! 
+          @asset.update!(status: "assigned")
+        end
+
+        if success
           render json: {
             message:  "Asset assigned successfully",
             asset:    asset_json(@asset.reload),
@@ -71,6 +76,10 @@ module Api
           errors = history.errors.full_messages + @asset.errors.full_messages
           render json: { errors: errors }, status: :unprocessable_entity
         end
+      rescue ActiveRecord::RecordInvalid => e
+        record = e.record
+        errors = record == history ? history.errors.full_messages : @asset.errors.full_messages + history.errors.full_messages
+        render json: { errors: errors.uniq }, status: :unprocessable_entity
       end
       
       def return_asset
@@ -86,7 +95,12 @@ module Api
           return render json: { error: "No open assignment found for this asset" }, status: :unprocessable_entity
         end
 
-        if open_assignment.update(returned_date: Date.today) && @asset.update!(status: "idle")
+        success = ActiveRecord::Base.transaction do
+          open_assignment.update!(returned_date: Date.today)
+          @asset.update!(status: "idle")
+        end
+
+        if success
           render json: {
             message:    "Asset returned successfully",
             asset:      asset_json(@asset.reload),
@@ -96,6 +110,10 @@ module Api
           errors = open_assignment.errors.full_messages + @asset.errors.full_messages
           render json: { errors: errors }, status: :unprocessable_entity
         end
+      rescue ActiveRecord::RecordInvalid => e
+        record = e.record
+        errors = record == open_assignment ? open_assignment.errors.full_messages : @asset.errors.full_messages + open_assignment.errors.full_messages
+        render json: { errors: errors.uniq }, status: :unprocessable_entity
       end
 
       def destroy

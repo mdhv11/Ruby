@@ -50,7 +50,7 @@ module Api
         return render json: { error: "approver_id is required" }, status: :bad_request unless approver_id.present?
         return render json: { error: "Approver not found" }, status: :not_found unless Employee.exists?(emp_id: approver_id)
 
-        if @leave.update(status: "approved", approved_by: approver_id)
+        if @leave.approve_with_balance(approver_id: approver_id)
           render json: {
             message: "Leave approved",
             leave:   leave_json(@leave.reload)

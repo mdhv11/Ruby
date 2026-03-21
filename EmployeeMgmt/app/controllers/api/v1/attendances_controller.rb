@@ -146,7 +146,7 @@ module Api
       end
 
       def employee_info
-        { emp_id: @employee.emp_id, name: @employee.name }
+        { emp_id: @employee.emp_id, name: @employee.name, department: @employee.department&.name }
       end
 
       def attendance_json(attendance)

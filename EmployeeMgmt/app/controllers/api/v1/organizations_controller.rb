@@ -2,7 +2,7 @@ module Api
   module V1
     class OrganizationsController < ApplicationController
 
-      before_action :set_organization, only: [:show, :update, :destroy, :summary]
+      before_action :set_organization, only: [:show, :update, :destroy, :summary, :managers]
 
       #for admin use
       def index
@@ -24,6 +24,34 @@ module Api
           department_count: @organization.departments.count,
           role_count:       @organization.roles.count,
           employee_count:   @organization.employees.count
+        }, status: :ok
+      end
+
+      def managers
+        departments = @organization.departments.includes(:manager).where.not(manager_id: nil)
+        grouped_departments = departments.group_by(&:manager_id)
+
+        render json: {
+          org_id: @organization.org_id,
+          name: @organization.name,
+          manager_count: grouped_departments.count,
+          managers: grouped_departments.values.map do |managed_departments|
+            manager = managed_departments.first.manager
+
+            {
+              manager: {
+                emp_id: manager.emp_id,
+                name: manager.name
+              },
+              department_count: managed_departments.count,
+              departments: managed_departments.map do |department|
+                {
+                  dept_id: department.dept_id,
+                  name: department.name
+                }
+              end
+            }
+          end
         }, status: :ok
       end
 

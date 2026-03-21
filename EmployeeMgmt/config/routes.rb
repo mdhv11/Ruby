@@ -7,11 +7,15 @@ Rails.application.routes.draw do
       # Organizations → Departments → Roles → Projects → Policies
 
       resources :organizations do
-        member { get :summary }
+        member do
+          get :summary
+          get :managers
+        end
 
         resources :departments do
           member do
             get   :summary
+            get   :monthly_salary_expense
             patch :assign_manager
           end
 
@@ -36,10 +40,15 @@ Rails.application.routes.draw do
 
       # Employees (top-level, filter by dept/org via query params)
       resources :employees do
-        collection {post :register} 
+        collection do
+          post :register
+          get  :project_overload_detection
+          get  :salary_reduction_candidates
+        end
         member do
           patch :onboard
           get   :profile
+          get   :manager_performance
           patch :deactivate
           patch :transfer
           patch :change_role

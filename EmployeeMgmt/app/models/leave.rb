@@ -1,6 +1,8 @@
 class Leave < ApplicationRecord
   self.primary_key = :leave_id
 
+  attr_accessor :skip_start_date_not_in_past_validation
+
   enum :status, {
     pending:  "pending",
     approved: "approved",
@@ -27,10 +29,34 @@ class Leave < ApplicationRecord
   validate :sufficient_leave_balance,   on: :create
   validate :no_overlapping_leaves,      on: :create
 
-  after_update :sync_leave_balance, if: -> { saved_change_to_status? }
-
   def duration_days
     (end_date - start_date).to_i + 1
+  end
+
+  def approve_with_balance(approver_id:)
+    with_lock do
+      return add_status_error("Only pending leaves can be approved") unless status_pending?
+
+      transaction do
+        deduct_leave_balance!
+        update!(status: "approved", approved_by: approver_id)
+      end
+    end
+
+    true
+  rescue ActiveRecord::RecordInvalid
+    false
+  end
+
+  def reject_with_balance_restore!(approver_id: nil)
+    with_lock do
+      return true if status_rejected?
+
+      transaction do
+        restore_leave_balance! if status_approved?
+        update!(status: "rejected", approved_by: approver_id)
+      end
+    end
   end
 
   private
@@ -41,6 +67,7 @@ class Leave < ApplicationRecord
   end
 
   def start_date_not_in_past
+    return if skip_start_date_not_in_past_validation
     return unless start_date.present?
     errors.add(:start_date, "cannot be in the past") if start_date < Date.today
   end
@@ -57,13 +84,10 @@ class Leave < ApplicationRecord
     return unless emp_id.present? && policy_id.present? && start_date.present? && end_date.present?
 
     balance = LeaveBalance.find_by(emp_id: emp_id, policy_id: policy_id, year: start_date.year)
-
-    policy = LeavePolicy.find_by(policy_id: policy_id)
+    policy = leave_policy || LeavePolicy.find_by(policy_id: policy_id)
     return if policy&.leave_type_unpaid?
 
-    if balance.nil? || balance.remaining < duration_days
-      errors.add(:base, "Insufficient leave balance. Available: #{balance&.remaining || 0} days, Requested: #{duration_days} days")
-    end
+    add_insufficient_balance_error(balance) if balance.nil? || balance.remaining < duration_days
   end
 
   def no_overlapping_leaves
@@ -76,23 +100,41 @@ class Leave < ApplicationRecord
     errors.add(:base, "Leave dates overlap with an existing leave request") if overlap.exists?
   end
 
-  def sync_leave_balance
-    policy = leave_policy
-    return if policy.leave_type_unpaid?
+  def deduct_leave_balance!
+    policy = leave_policy || LeavePolicy.find_by(policy_id: policy_id)
+    return if policy&.leave_type_unpaid?
 
-    balance = LeaveBalance.find_by(emp_id: emp_id, policy_id: policy_id, year: start_date.year)
+    balance = LeaveBalance.lock.find_by(emp_id: emp_id, policy_id: policy_id, year: start_date.year)
+    if balance.nil? || balance.remaining < duration_days
+      add_insufficient_balance_error(balance)
+      raise ActiveRecord::RecordInvalid, self
+    end
+
+    balance.update_counts!(
+      used: balance.used + duration_days,
+      remaining: balance.remaining - duration_days
+    )
+  end
+
+  def restore_leave_balance!
+    policy = leave_policy || LeavePolicy.find_by(policy_id: policy_id)
+    return if policy&.leave_type_unpaid?
+
+    balance = LeaveBalance.lock.find_by(emp_id: emp_id, policy_id: policy_id, year: start_date.year)
     return unless balance
 
-    if status_approved?
-      balance.update!(
-        used:      balance.used + duration_days,
-        remaining: balance.remaining - duration_days
-      )
-    elsif status_rejected? && status_before_last_save == "approved"
-      balance.update!(
-        used:      [balance.used - duration_days, 0].max,
-        remaining: balance.remaining + duration_days
-      )
-    end
+    balance.update_counts!(
+      used: [balance.used - duration_days, 0].max,
+      remaining: balance.remaining + duration_days
+    )
+  end
+
+  def add_insufficient_balance_error(balance)
+    errors.add(:base, "Insufficient leave balance. Available: #{balance&.remaining || 0} days, Requested: #{duration_days} days")
+  end
+
+  def add_status_error(message)
+    errors.add(:status, message)
+    false
   end
 end

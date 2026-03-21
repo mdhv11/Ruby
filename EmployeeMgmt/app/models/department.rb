@@ -1,5 +1,6 @@
 class Department < ApplicationRecord
   self.primary_key = :dept_id
+  UUID_FORMAT = /\A[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/i
 
   belongs_to :organization, foreign_key: :org_id,     primary_key: :org_id
   belongs_to :manager,      foreign_key: :manager_id, primary_key: :emp_id,
@@ -18,7 +19,8 @@ class Department < ApplicationRecord
   validates :name,                 uniqueness: { scope: :org_id, case_sensitive: false,
                                                  message: "already exists in this organization" }
 
-  validate :manager_belongs_to_department, if: -> { manager_id.present? }
+  validate :manager_id_must_be_valid_uuid, if: -> { manager_id.present? }
+  validate :manager_belongs_to_organization, if: -> { manager_id.present? }
 
   validates :standard_hours, numericality: {
     greater_than: 0,
@@ -27,9 +29,15 @@ class Department < ApplicationRecord
 
   private
 
-  def manager_belongs_to_department
-    unless Employee.exists?(emp_id: manager_id, dept_id: dept_id)
-      errors.add(:manager_id, "must be an employee of this department")
+  def manager_id_must_be_valid_uuid
+    errors.add(:manager_id, "must be a valid UUID") unless manager_id.to_s.match?(UUID_FORMAT)
+  end
+
+  def manager_belongs_to_organization
+    return if errors.include?(:manager_id)
+
+    unless Employee.joins(:department).exists?(emp_id: manager_id, departments: { org_id: org_id })
+      errors.add(:manager_id, "must be an employee of this organization")
     end
   end
 end

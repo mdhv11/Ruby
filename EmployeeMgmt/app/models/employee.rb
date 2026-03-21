@@ -18,7 +18,7 @@ class Employee < ApplicationRecord
   has_many :employee_role_histories,       foreign_key: :emp_id, primary_key: :emp_id
 
   has_many :leave_balances,              foreign_key: :emp_id, primary_key: :emp_id
-  has_many :leaves,                      foreign_key: :emp_id, primary_key: :emp_id
+  has_many :leaves,                      foreign_key: :emp_id, primary_key: :emp_id, class_name: "Leave"
   has_many :attendances,                 foreign_key: :emp_id, primary_key: :emp_id
   has_many :employee_projects,           foreign_key: :emp_id, primary_key: :emp_id
   has_many :projects, through:           :employee_projects
@@ -53,6 +53,28 @@ class Employee < ApplicationRecord
       .includes(:department)
       .find_by(end_date: nil)
       &.department
+  end
+
+  def working_days_in_month(month, year)
+    working_days = department&.working_days.to_a.reject(&:blank?)
+    return 20 if working_days.blank?
+
+    (Date.new(year, month, 1)..Date.new(year, month, -1)).count do |date|
+      working_days.include?(date.strftime("%A"))
+    end
+  end
+
+  def attendance_percentage_for(month, year)
+    records = attendances.for_month(month, year)
+    working_days = working_days_in_month(month, year)
+    return 0.0 if working_days.zero?
+
+    effective_days = records.status_present.count + (records.status_half_day.count * 0.5)
+    ((effective_days / working_days.to_f) * 100).round(2)
+  end
+
+  def half_day_absence_equivalent_for(month, year)
+    attendances.for_month(month, year).status_half_day.count / 2
   end
 
   private

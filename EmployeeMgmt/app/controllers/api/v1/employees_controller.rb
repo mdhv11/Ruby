@@ -2,7 +2,7 @@ module Api
   module V1
     class EmployeesController < ApplicationController
 
-      before_action :set_employee, only: [:show, :update, :deactivate, :profile, :transfer, :change_role, :onboard]
+      before_action :set_employee, only: [:show, :update, :deactivate, :profile, :manager_performance, :transfer, :change_role, :onboard, :leave_balances]
 
       def index
         employees = Employee.includes(:department, :employee_role_histories)
@@ -20,6 +20,27 @@ module Api
 
       def show
         render json: employee_summary_json(@employee), status: :ok
+      end
+
+      def manager_performance
+        department_team_ids = department_team_member_ids(@employee)
+        project_team_ids = project_team_member_ids(@employee) - department_team_ids
+        reviews = filtered_manager_reviews(@employee, (department_team_ids + project_team_ids).uniq)
+        department_reviews = filtered_manager_reviews(@employee, department_team_ids)
+        project_reviews = filtered_manager_reviews(@employee, project_team_ids)
+
+        overall_team_ids = (department_team_ids + project_team_ids).uniq
+
+        render json: {
+          manager: employee_summary_json(@employee),
+          team_member_count: overall_team_ids.count,
+          review_count: reviews.count,
+          average_rating: average_rating_for(reviews),
+          reviews: reviews.order(review_date: :desc).map { |review| manager_review_json(review) },
+          overall: manager_performance_summary(overall_team_ids, reviews),
+          department_team: manager_performance_summary(department_team_ids, department_reviews),
+          project_team: manager_performance_summary(project_team_ids, project_reviews)
+        }, status: :ok
       end
 
       def profile
@@ -42,6 +63,71 @@ module Api
         else
           render json: { errors: employee.errors.full_messages }, status: :unprocessable_entity
         end
+      end
+
+      def project_overload_detection
+        max_projects = params[:max_projects].present? ? params[:max_projects].to_i : 3
+        return render json: { error: "max_projects must be greater than 0" }, status: :bad_request if max_projects <= 0
+
+        employees = Employee.includes(:department, employee_projects: :project).where(status: "active")
+        employees = employees.where(dept_id: params[:dept_id]) if params[:dept_id].present?
+
+        if params[:org_id].present?
+          dept_ids = Department.where(org_id: params[:org_id]).pluck(:dept_id)
+          employees = employees.where(dept_id: dept_ids)
+        end
+
+        overloaded_employees = employees.filter_map do |employee|
+          active_projects = active_projects_for(employee)
+          next unless active_projects.count > max_projects
+
+          {
+            emp_id: employee.emp_id,
+            name: employee.name,
+            department: dept_info(employee.department),
+            active_project_count: active_projects.count,
+            projects: active_projects
+          }
+        end
+
+        render json: {
+          max_projects: max_projects,
+          count: overloaded_employees.count,
+          employees: overloaded_employees
+        }, status: :ok
+      end
+
+      def salary_reduction_candidates
+        month = params[:month].to_i
+        year  = params[:year].to_i
+
+        unless (1..12).include?(month) && year > 2000
+          return render json: { error: "month and year params are required and must be valid" }, status: :bad_request
+        end
+
+        attendance_below = params[:attendance_below].present? ? params[:attendance_below].to_f : 80.0
+        employees = Employee.includes(:department, :attendances).where(status: "active")
+        employees = employees.where(dept_id: params[:dept_id]) if params[:dept_id].present?
+
+        if params[:org_id].present?
+          dept_ids = Department.where(org_id: params[:org_id]).pluck(:dept_id)
+          employees = employees.where(dept_id: dept_ids)
+        end
+
+        period_start = Date.new(year, month, 1)
+        period_end   = Date.new(year, month, -1)
+
+        candidates = employees.filter_map do |employee|
+          reduction_candidate_json(employee, month, year, period_start, period_end, attendance_below)
+        end
+
+        render json: {
+          month: month,
+          year: year,
+          attendance_below: attendance_below.round(2),
+          count: candidates.count,
+          employees: candidates
+        }, status: :ok
       end
 
 
@@ -205,6 +291,16 @@ module Api
         render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
       end
 
+      def leave_balances
+        year = params[:year]&.to_i || Date.today.year
+
+        balances = @employee.leave_balances
+                            .where(year: year)
+                            .includes(:leave_policy)
+
+        render json: balances.map { |balance| leave_balance_json(balance) }, status: :ok
+      end
+
       private
 
       def set_employee
@@ -277,17 +373,7 @@ module Api
       end
 
       def active_projects_json(employee)
-        employee.employee_projects
-                .includes(:project)
-                .select { |ep| ep.project&.status != "completed" }
-                .map do |ep|
-          {
-            project_id:   ep.project.project_id,
-            project_name: ep.project.project_name,
-            project_role: ep.project_role,
-            status:       ep.project.status
-          }
-        end
+        active_projects_for(employee)
       end
 
       def latest_review_json(employee)
@@ -298,6 +384,144 @@ module Api
           rating:      review.rating,
           feedback:    review.feedback
         }
+      end
+
+      def leave_balance_json(balance)
+        {
+          policy:        leave_policy_info(balance.leave_policy),
+          year:          balance.year,
+          total_allowed: balance.total_allowed,
+          used:          balance.used,
+          remaining:     balance.remaining
+        }
+      end
+
+      def leave_policy_info(policy)
+        return nil unless policy
+
+        {
+          policy_id: policy.policy_id,
+          leave_type: policy.leave_type,
+          days_allowed: policy.days_allowed
+        }
+      end
+
+      def department_team_member_ids(manager)
+        Employee.where(
+          dept_id: Department.where(manager_id: manager.emp_id).select(:dept_id),
+          status: "active"
+        ).where.not(emp_id: manager.emp_id).pluck(:emp_id)
+      end
+
+      def project_team_member_ids(manager)
+        EmployeeProject.joins(:project)
+                       .where(projects: { project_manager: manager.emp_id })
+                       .where.not(emp_id: manager.emp_id)
+                       .pluck(:emp_id)
+                       .uniq
+      end
+
+      def filtered_manager_reviews(manager, reviewer_ids)
+        reviews = manager.performance_reviews.includes(:reviewer)
+        reviews = reviews.where(reviewer_id: reviewer_ids)
+
+        if params[:year].present?
+          year = params[:year].to_i
+          reviews = reviews.where(review_date: Date.new(year, 1, 1)..Date.new(year, 12, 31))
+        end
+
+        reviews
+      end
+
+      def manager_performance_summary(team_member_ids, reviews)
+        {
+          team_member_count: team_member_ids.count,
+          review_count: reviews.count,
+          average_rating: average_rating_for(reviews)
+        }
+      end
+
+      def average_rating_for(reviews)
+        reviews.average(:rating)&.round(2)&.to_f
+      end
+
+      def manager_review_json(review)
+        {
+          review_id: review.review_id,
+          rating: review.rating,
+          feedback: review.feedback,
+          review_date: review.review_date,
+          reviewer: {
+            emp_id: review.reviewer.emp_id,
+            name: review.reviewer.name
+          }
+        }
+      end
+
+      def active_projects_for(employee)
+        employee.employee_projects
+                .includes(:project)
+                .filter_map do |employee_project|
+          project = employee_project.project
+          next if project.nil? || project.status == "completed"
+
+          {
+            project_id: project.project_id,
+            project_name: project.project_name,
+            project_role: employee_project.project_role,
+            status: project.status
+          }
+        end
+      end
+
+      def reduction_candidate_json(employee, month, year, period_start, period_end, attendance_below)
+        records = employee.attendances.for_month(month, year)
+        present_count = records.status_present.count
+        half_day_count = records.status_half_day.count
+
+        working_days = employee.working_days_in_month(month, year)
+        attendance_pct = employee.attendance_percentage_for(month, year)
+        unpaid_days = unpaid_leave_days_for(employee, period_start, period_end)
+        half_day_equivalent = employee.half_day_absence_equivalent_for(month, year)
+
+        reasons = []
+        reasons << "unpaid_leave" if unpaid_days.positive?
+        reasons << "low_attendance" if attendance_pct < attendance_below
+        return nil if reasons.empty?
+        reasons << "half_day_adjustment" if half_day_equivalent.positive?
+
+        {
+          emp_id: employee.emp_id,
+          name: employee.name,
+          department: dept_info(employee.department),
+          month: month,
+          year: year,
+          unpaid_leave_days: unpaid_days,
+          half_day_absence_equivalent: half_day_equivalent,
+          attendance_percentage: attendance_pct,
+          working_days_in_month: working_days,
+          reasons: reasons
+        }
+      end
+
+      def unpaid_leave_days_for(employee, period_start, period_end)
+        unpaid_policy = LeavePolicy.find_by(dept_id: employee.dept_id, leave_type: "unpaid")
+        return 0 unless unpaid_policy
+
+        Leave.where(
+          emp_id: employee.emp_id,
+          policy_id: unpaid_policy.policy_id,
+          status: "approved"
+        ).where("start_date <= ? AND end_date >= ?", period_end, period_start)
+         .sum { |leave| overlapping_days_with_period(leave, period_start, period_end) }
+      end
+
+      def overlapping_days_with_period(leave, period_start, period_end)
+        overlap_start = [leave.start_date, period_start].max
+        overlap_end = [leave.end_date, period_end].min
+        return 0 if overlap_start > overlap_end
+
+        (overlap_end - overlap_start).to_i + 1
       end
     end
   end

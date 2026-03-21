@@ -2,6 +2,8 @@ module Api
   module V1
     class SalaryStructuresController < ApplicationController
 
+      before_action :set_organization
+      before_action :set_department
       before_action :set_role
       before_action :set_structure, only: [:show, :update, :destroy]
 
@@ -44,8 +46,18 @@ module Api
 
       private
 
+      def set_organization
+        @organization = Organization.find_by(org_id: params[:organization_id])
+        render json: { error: "Organization not found" }, status: :not_found unless @organization
+      end
+
+      def set_department
+        @department = @organization.departments.find_by(dept_id: params[:department_id])
+        render json: { error: "Department not found" }, status: :not_found unless @department
+      end
+
       def set_role
-        @role = Role.find_by(role_id: params[:role_id])
+        @role = @department.roles.find_by(role_id: params[:role_id], org_id: @organization.org_id)
         render json: { error: "Role not found" }, status: :not_found unless @role
       end
 

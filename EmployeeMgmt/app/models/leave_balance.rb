@@ -28,6 +28,14 @@ class LeaveBalance < ApplicationRecord
       )
   end
 
+  def update_counts!(used:, remaining:)
+    assign_attributes(used: used, remaining: remaining)
+    validate!
+
+    self.class.where(emp_id: emp_id, policy_id: policy_id, year: year)
+              .update_all(used: self.used, remaining: self.remaining)
+  end
+
   private
 
   def used_cannot_exceed_total

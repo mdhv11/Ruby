@@ -60,11 +60,11 @@ module Api
             emp_id:    @employee.emp_id,
             policy_id: unpaid_policy.policy_id,
             status:    "approved"
-          ).where("start_date >= ? AND end_date <= ?", period_start, period_end)
-                             .sum { |l| (l.end_date - l.start_date).to_i + 1 }
+          ).where("start_date <= ? AND end_date >= ?", period_end, period_start)
+           .sum { |leave| overlapping_days_with_period(leave, period_start, period_end) }
         end
 
-        working_days_in_month = monthly_working_days_for(@employee, month, year)
+        working_days_in_month = @employee.working_days_in_month(month, year)
         daily_rate            = (structure.basic_salary / working_days_in_month.to_f).round(2)
         unpaid_leave_deduct   = (daily_rate * unpaid_days).round(2)
 
@@ -147,13 +147,13 @@ module Api
         }
       end
 
-      def monthly_working_days_for(employee, month, year)
-        working_days = employee.department&.working_days.to_a.reject(&:blank?)
-        return 20 if working_days.blank?
+      def overlapping_days_with_period(leave, period_start, period_end)
+        overlap_start = [leave.start_date, period_start].max
+        overlap_end   = [leave.end_date, period_end].min
 
-        (Date.new(year, month, 1)..Date.new(year, month, -1)).count do |date|
-          working_days.include?(date.strftime("%A"))
-        end
+        return 0 if overlap_start > overlap_end
+
+        (overlap_end - overlap_start).to_i + 1
       end
     end
   end
